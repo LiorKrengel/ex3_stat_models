@@ -4,8 +4,8 @@ from collections import Counter
 import os
 import re
 import numpy as np
-from multiprocessing import Process, Manager
 import time
+import matplotlib.pyplot as plt
 
 develop_txt_name = "develop.txt"
 #Getting the parameters
@@ -102,6 +102,17 @@ class EM:
             self.iter_scores.append((ln_Likelihood, perplexity))
             print(f"LnL: {ln_Likelihood}, Perp: {perplexity}, Iterations: {t}")
             t += 1
+
+        self.create_Graph([likli[0] for likli in self.iter_scores], 'Log Likelihood')
+        self.create_Graph([likli[1] for likli in self.iter_scores], 'Perplexity')
+        
+    def create_Graph(self, values, graph_name):
+        plt.plot(range(1, len(values) + 1), values)
+        plt.xlabel('Iteration')
+        plt.ylabel(graph_name)
+        plt.title(graph_name)
+        plt.savefig(f"{graph_name}.png")
+        plt.close()
 
     def E_Calc(self):
         '''
