@@ -6,6 +6,7 @@ import re
 import numpy as np
 import time
 import matplotlib.pyplot as plt
+from copy import deepcopy
 
 develop_txt_name = "develop.txt"
 #Getting the parameters
@@ -80,19 +81,20 @@ def get_Data_From_File(file_name):
     return docs_list_filtered, words_counter
 
 class EM:
-    def __init__(self, docs, words_counter):
-        self.docs = docs
-        self.words_counter = words_counter
+    def __init__(self, docs, words_counter, stopping_criteria=10):
+        self.docs = deepcopy(docs)
+        self.words_counter = deepcopy(words_counter)
         self.word_count_matrix = np.array([[doc[3].get(word, 0) for word in self.words_counter.keys()] for doc in self.docs])
         self.doc_len_matrix = np.array([doc[2] for doc in self.docs])[:, np.newaxis]  # Matrix of document lengths
         self.P_total = [0 for i in range(NUMBER_OF_CLUSTERS)]
         # Stores the perplexity, likelihood per iteration
         self.iter_scores = []
+        self.stopping_criteria = stopping_criteria
     
     def run(self):
         t = 1
         while(True):
-            if (len(self.iter_scores) > 2 and self.iter_scores[-1][0] - self.iter_scores[-2][0] <= 10):
+            if (len(self.iter_scores) > 2 and self.iter_scores[-1][0] - self.iter_scores[-2][0] <= self.stopping_criteria):
                 print("We reached the convergence point")
                 break
 
@@ -107,7 +109,7 @@ class EM:
         self.create_Graph([likli[1] for likli in self.iter_scores], 'Perplexity')
         
     def create_Graph(self, values, graph_name):
-        plt.plot(range(1, len(values) + 1), values)
+        plt.plot(values)
         plt.xlabel('Iteration')
         plt.ylabel(graph_name)
         plt.title(graph_name)
@@ -134,14 +136,14 @@ class EM:
             # Calculate the log-likelihood contribution for this document
             LogL += m + np.log(np.sum(np.exp(Zi - m) * (Zi - m >= -K)))
             
-        print(f"Run of E took:{time.time() - t}")
+        # print(f"Run of E took:{time.time() - t}")
         return LogL
 
     def M_Calc(self):
         t = time.time()
         self.set_Alpha_Calc()
         self.P_Calc()
-        print(f"Run of M took:{time.time() - t}")
+        # print(f"Run of M took:{time.time() - t}")
     
     def P_Calc(self):
         t_total = time.time()
@@ -150,7 +152,7 @@ class EM:
         numerator = np.dot(wt_matrix.T, self.word_count_matrix)
         Pi_matrix = (numerator + LAMBDA) / (denominator[:, np.newaxis] + len(self.words_counter) * LAMBDA)
         self.P_total = {i: {word: Pi_matrix[i, idx] for idx, word in enumerate(self.words_counter.keys())} for i in range(NUMBER_OF_CLUSTERS)}
-        print(f"Run of P Calc took: {time.time() - t_total}")
+        # print(f"Run of P Calc took: {time.time() - t_total}")
 
     def set_Alpha_Calc(self):
         wt_matrix = np.array([doc[0] for doc in self.docs])  # Matrix of weights
